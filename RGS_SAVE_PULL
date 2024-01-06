@@ -1,0 +1,34 @@
+import os
+import shutil
+
+# Source folder path
+source_folder = r"C:\Users\Josiah\AppData\Local\Packages\PerfectWorldEntertainment.GFREMP2_jrajkyc4tsa6w\SystemAppData\wgs\0009000006C94F41_00000000000000000000000076F212E3"
+# Destination folder path
+destination_folder = r"C:\Users\Josiah\Desktop\remnant_saves"
+
+# Iterate through the source folder and its subdirectories
+for root, dirs, files in os.walk(source_folder):
+    for file_name in files:
+        source_file_path = os.path.join(root, file_name)
+        destination_file_path = os.path.join(destination_folder, file_name)
+        try:
+            shutil.copy2(source_file_path, destination_file_path)
+            print(f"File '{file_name}' copied successfully.")
+        except FileNotFoundError:
+            print(f"File '{file_name}' not found in the source folder.")
+        except Exception as e:
+            print(f"Error copying '{file_name}': {e}")
+
+# Get a list of files in the destination folder
+destination_files = [f for f in os.listdir(destination_folder) if os.path.isfile(os.path.join(destination_folder, f))]
+
+# Sort files by size in descending order
+sorted_files = sorted(destination_files, key=lambda f: os.path.getsize(os.path.join(destination_folder, f)), reverse=True)
+
+# Rename the two largest files
+if len(sorted_files) >= 1:
+    os.rename(os.path.join(destination_folder, sorted_files[0]), os.path.join(destination_folder, "save_0.sav"))
+    print(f"Renamed largest file to 'save_0.sav'")
+if len(sorted_files) >= 2:
+    os.rename(os.path.join(destination_folder, sorted_files[1]), os.path.join(destination_folder, "profile.sav"))
+    print(f"Renamed second largest file to 'profile.sav'")
