@@ -1,34 +1,83 @@
 import os
 import shutil
+import getpass
+
+# Defines the current logged in windows user
+user_name = getpass.getuser()
+
+# Defines the Unique_ID by capturing the folder name located at the root_folder while excluding the t folder
+root_folder = rf"C:\Users\{user_name}\AppData\Local\Packages\PerfectWorldEntertainment.GFREMP2_jrajkyc4tsa6w\SystemAppData\wgs"
+exclude_folder = "t"
+unique_id = [
+    d for d in os.listdir(root_folder) 
+    if os.path.isdir(os.path.join(root_folder, d)) and d != exclude_folder
+]
+
+# Destination folder path, this can be whatever folder you want
+destination_folder = rf"C:\Users\{user_name}\Documents\RSG_Temp"
+
+profile_file = "profile.sav"
 
 # Source folder path
-source_folder = r"C:\Users\Josiah\AppData\Local\Packages\PerfectWorldEntertainment.GFREMP2_jrajkyc4tsa6w\SystemAppData\wgs\0009000006C94F41_00000000000000000000000076F212E3"
-# Destination folder path
-destination_folder = r"C:\Users\Josiah\Desktop\remnant_saves"
+source_folder = rf"C:\Users\{user_name}\AppData\Local\Packages\PerfectWorldEntertainment.GFREMP2_jrajkyc4tsa6w\SystemAppData\wgs\{unique_id[0]}"
+
+# Defines the Specific_mappings varible by listing subdirectories of the source_folder
+specific_mappings = [d for d in os.listdir(source_folder) if os.path.isdir(os.path.join(source_folder, d))]
+
+# Prefix to be excluded
+excluded_prefix = "container"
+
+# Create the destination folder if it doesn't exist
+if not os.path.exists(destination_folder):
+    os.makedirs(destination_folder)
+    print(f"Created destination folder: {destination_folder}")
+
+# Empty the entire destination folder
+for file_name in os.listdir(destination_folder):
+    file_path = os.path.join(destination_folder, file_name)
+    if os.path.isfile(file_path):
+        os.remove(file_path)
+        print(f"Removed existing file: {file_name}")
 
 # Iterate through the source folder and its subdirectories
 for root, dirs, files in os.walk(source_folder):
     for file_name in files:
-        source_file_path = os.path.join(root, file_name)
-        destination_file_path = os.path.join(destination_folder, file_name)
-        try:
-            shutil.copy2(source_file_path, destination_file_path)
-            print(f"File '{file_name}' copied successfully.")
-        except FileNotFoundError:
-            print(f"File '{file_name}' not found in the source folder.")
-        except Exception as e:
-            print(f"Error copying '{file_name}': {e}")
+        if not file_name.startswith(excluded_prefix):
+            source_file_path = os.path.join(root, file_name)
+            destination_file_path = os.path.join(destination_folder, file_name)
+            try:
+                shutil.copy2(source_file_path, destination_file_path)
+                print(f"File '{file_name}' copied successfully.")
+            except FileNotFoundError:
+                print(f"File '{file_name}' not found in the source folder.")
+            except Exception as e:
+                print(f"Error copying '{file_name}': {e}")
 
 # Get a list of files in the destination folder
 destination_files = [f for f in os.listdir(destination_folder) if os.path.isfile(os.path.join(destination_folder, f))]
 
-# Sort files by size in descending order
-sorted_files = sorted(destination_files, key=lambda f: os.path.getsize(os.path.join(destination_folder, f)), reverse=True)
+# Sort files by size in ascending order
+sorted_files = sorted(destination_files, key=lambda f: os.path.getsize(os.path.join(destination_folder, f)))
 
-# Rename the two largest files
-if len(sorted_files) >= 1:
-    os.rename(os.path.join(destination_folder, sorted_files[0]), os.path.join(destination_folder, "save_0.sav"))
-    print(f"Renamed largest file to 'save_0.sav'")
-if len(sorted_files) >= 2:
-    os.rename(os.path.join(destination_folder, sorted_files[1]), os.path.join(destination_folder, "profile.sav"))
-    print(f"Renamed second largest file to 'profile.sav'")
+# Rename files according to the mapping
+save_file_counter = 0
+for file_name in sorted_files:
+    mapped_suffix = ""
+    new_file_name = ""
+
+    if file_name in specific_mappings:
+        index = specific_mappings.index(file_name)
+        new_file_name = f"save_{index}.sav"
+        mapped_suffix = " [mapped]"
+    else:
+        new_file_name = f"save_{save_file_counter}.sav"
+        save_file_counter += 1
+
+    if file_name == sorted_files[0]:
+        # Rename the smallest file to profile.sav
+        os.rename(os.path.join(destination_folder, file_name), os.path.join(destination_folder, profile_file))
+        print(f"Renamed smallest file ({file_name}) to '{profile_file}'")
+    else:
+        # Rename other files to save_*.sav
+        os.rename(os.path.join(destination_folder, file_name), os.path.join(destination_folder, new_file_name))
+        print(f"Renamed file ({file_name}) to '{new_file_name}'{mapped_suffix}")
